@@ -22,9 +22,19 @@ int	check_args(int argc, char **argv)
 	return (1);
 }
 
+
 int	main(int argc, char **argv)
 {
+    t_data data;
 	if (!check_args(argc, argv))
 		return (1);
+    if(!init_data(&data, argc, argv))
+    { 
+        printf("Error: Initialization failed\n");
+        // need some cleanup function here
+        return (1);
+    }
+    start_simulation(&data);
+    //cleanup;
     return (0);
 }
