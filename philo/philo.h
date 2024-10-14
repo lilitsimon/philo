@@ -47,5 +47,9 @@ void *philo_routine(void *arg);
 int philo_eat(t_philo *philo);
 void print_status(t_philo *philo, char *status);
 int smart_sleep(long long milliseconds, t_data *data);
+void *monitor_routine (void *arg);
+int check_philo_death(t_philo *philo);
+int philo_sleep(t_philo *philo);
+int philo_think(t_philo *philo);
 
 #endif

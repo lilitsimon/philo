@@ -72,3 +72,19 @@ int smart_sleep(long long milliseconds, t_data *data)
 		usleep (50); // Sleep for small intervals and check for the deaths regularly to end early, CPU usagy (more sleep, less usage, less responsive)
 	}
 }
+int check_philo_death(t_philo *philo)
+{
+	t_data *data;
+	long long current_time;
+	data = philo->data;
+	current_time = get_time();
+	if ((current_time - philo->last_meal_time) > data->time_to_die)
+	{
+		print_status(philo, "died");
+		pthread_mutex_lock(&data->dead_lock);
+		data->dead = 1;
+		pthread_mutex_unlock(&data->dead_lock);
+		return (1);
+	}
+	return(0);
+}

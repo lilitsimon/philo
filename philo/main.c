@@ -27,7 +27,10 @@ int	main(int argc, char **argv)
 {
     t_data data;
 	if (!check_args(argc, argv))
+	{
+		printf("Input validation failed");
 		return (1);
+	}
     if(!init_data(&data, argc, argv))
     { 
         printf("Error: Initialization failed\n");
