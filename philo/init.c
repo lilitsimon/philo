@@ -5,7 +5,7 @@ int	init_data(t_data *data, int argc, char **argv)
 	data->num_philos = ft_atol(argv[1]);
 	data->time_to_die = ft_atol(argv[2]);
 	data->time_to_eat = ft_atol(argv[3]);
-	data->time_to_sleap = ft_atol(argv[4]);
+	data->time_to_sleep = ft_atol(argv[4]);
 	if (argc == 6)
 		data->must_eat_count = ft_atol(argv[5]);
 	else
@@ -28,11 +28,12 @@ int	init_mutexes(t_data *data)
 		if (pthread_mutex_init(&data->forks[i], NULL) != 0)
 			return (0);
 		i++;
-		if (pthread_mutex_init(&data->write_lock, NULL) != 0)
+	}	
+	if (pthread_mutex_init(&data->write_lock, NULL) != 0)
 			return (0);
-		if (pthread_mutex_init(&data->dead_lock, NULL) != 0)
+	if (pthread_mutex_init(&data->dead_lock, NULL) != 0)
 			return (0);
-	}
+	printf("mutextes initialised\n");
 	return (1);
 }
 
@@ -55,6 +56,7 @@ int	init_philos(t_data *data)
 		data->philos[i].data = data;
         i++;
 	}
+	printf("philos initialised\n");
     return (1);
 }
 

@@ -2,6 +2,7 @@
 
 void *philo_routine(void *arg)
 {
+    printf("enetering philo routine\n");
     t_philo *philo;
     // t_data  *data;
 
@@ -25,6 +26,7 @@ void *philo_routine(void *arg)
 
 void *monitor_routine (void *arg)
 {
+    printf("entering moinitor routine\n");
     t_data *data;
     int i;
     int finished;
@@ -39,14 +41,14 @@ void *monitor_routine (void *arg)
         {
             if (check_philo_death(&data->philos[i]))
                 return (NULL);
-            if (data->must_eat_count != -1 && data->philos[i].meals_eaten >= data->must_eat_count)
+            if (data->must_eat_count != -1 && data->philos[i].meals_eaten >= data->must_eat_count) // check mutex here
                 finished++;
             i++;
         }
         if (finished ==data->num_philos)
         {
             pthread_mutex_lock(&data->write_lock);
-            printf("All philosophers have eaten enough");
+            printf("All philosophers have eaten enough\n");
             pthread_mutex_unlock(&data->write_lock);
             pthread_mutex_lock(&data->dead_lock);
             data->dead = 1;
@@ -54,16 +56,16 @@ void *monitor_routine (void *arg)
             return (NULL);
         }
     }
-
 }
 
 int start_simulation(t_data *data)
 {
+    printf("starting simulation\n");
     int i;
     pthread_t monitor;
 
     i = 0;
-    data->start_time = get_time();
+    data->start_time = get_time(); // can be removed
 
     while (i < data->num_philos)
     {
@@ -87,6 +89,7 @@ int start_simulation(t_data *data)
 
 int philo_eat (t_philo *philo)
 {
+    printf("entering philo eat\n");
     t_data *data;
 
     data = philo->data;
@@ -101,7 +104,7 @@ int philo_eat (t_philo *philo)
         pthread_mutex_unlock(&data->forks[philo->left_fork]);
         pthread_mutex_unlock(&data->forks[philo->right_fork]);
     }
-    pthread_mutex_lock(&data->dead_lock);
+    pthread_mutex_unlock(&data->dead_lock);
     print_status(philo, "is eating");
     philo->last_meal_time = get_time();
     if (smart_sleep(data->time_to_eat, data))
@@ -114,13 +117,14 @@ int philo_eat (t_philo *philo)
 
 int philo_sleep(t_philo *philo)
 {
+    printf("enetering philo sleep\n");
     print_status(philo, "is sleeping");
-    smart_sleep(philo->data->time_to_sleap, philo->data);
-    return (0);
+    return (smart_sleep(philo->data->time_to_sleep, philo->data));
 }
 
 int philo_think(t_philo *philo)
 {
+    printf("entering philo think\n");
     print_status(philo, "is thinking");
     return(0);
 }

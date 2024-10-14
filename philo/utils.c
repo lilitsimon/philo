@@ -46,7 +46,7 @@ void print_status (t_philo *philo, char *status)
 	current_time = get_time() - data->start_time;
 	pthread_mutex_lock(&data->write_lock);
 	if (!data->dead)
-		printf("%lld %d %s", current_time, philo->id, status);
+		printf("%lld %d %s\n", current_time, philo->id, status);
 	pthread_mutex_unlock(&data->write_lock);
 }
 
@@ -56,7 +56,6 @@ int smart_sleep(long long milliseconds, t_data *data)
 	long long current;
 
 	start = get_time();
-	current = get_time();
 	while (1)
 	{
 		pthread_mutex_lock(&data->dead_lock);
@@ -84,7 +83,10 @@ int check_philo_death(t_philo *philo)
 		pthread_mutex_lock(&data->dead_lock);
 		data->dead = 1;
 		pthread_mutex_unlock(&data->dead_lock);
+		printf("exiting checkphilodeatth\n");
 		return (1);
 	}
+	
 	return(0);
 }
+

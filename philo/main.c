@@ -28,16 +28,19 @@ int	main(int argc, char **argv)
     t_data data;
 	if (!check_args(argc, argv))
 	{
-		printf("Input validation failed");
+		printf("Input validation failed\n");
 		return (1);
 	}
+	printf("initialing data\n");
     if(!init_data(&data, argc, argv))
     { 
         printf("Error: Initialization failed\n");
         // need some cleanup function here
         return (1);
     }
+	printf("starting simulation\n");
     start_simulation(&data);
+	printf("simulation finished ok");
     //cleanup;
     return (0);
 }
