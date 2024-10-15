@@ -22,6 +22,28 @@ int	check_args(int argc, char **argv)
 	return (1);
 }
 
+void cleanup(t_data *data)
+{
+	int i;
+
+	i = 0;
+
+	if (data->forks)
+	{
+		while (i < data->num_philos)
+		{
+			pthread_mutex_destroy(&data->forks[i]);
+			i++;
+		}
+		free(data->forks);
+	}
+	pthread_mutex_destroy(&data->write_lock);
+	pthread_mutex_destroy(&data->dead_lock);
+
+	if (data->philos)
+		free(data->philos);
+}
+
 
 int	main(int argc, char **argv)
 {
@@ -31,16 +53,21 @@ int	main(int argc, char **argv)
 		printf("Input validation failed\n");
 		return (1);
 	}
-	printf("initialing data\n");
+	// printf("initialing data\n");
     if(!init_data(&data, argc, argv))
     { 
         printf("Error: Initialization failed\n");
-        // need some cleanup function here
+        cleanup(&data);
         return (1);
     }
-	printf("starting simulation\n");
-    start_simulation(&data);
-	printf("simulation finished ok");
-    //cleanup;
+	// printf("starting simulation\n");
+    if (start_simulation(&data)!= 0)
+	{
+		printf("Error: Simulation failed)");
+		cleanup(&data);
+		return (1);
+	}
+	// printf("simulation finished ok");
+   	cleanup(&data);
     return (0);
 }

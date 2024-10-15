@@ -51,5 +51,8 @@ void *monitor_routine (void *arg);
 int check_philo_death(t_philo *philo);
 int philo_sleep(t_philo *philo);
 int philo_think(t_philo *philo);
+void cleanup(t_data *data);
+int dead_loop(t_philo *philo);
+void one_philo(t_data *data);
 
 #endif

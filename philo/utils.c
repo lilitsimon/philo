@@ -79,14 +79,17 @@ int check_philo_death(t_philo *philo)
 	current_time = get_time();
 	if ((current_time - philo->last_meal_time) > data->time_to_die)
 	{
-		print_status(philo, "died");
 		pthread_mutex_lock(&data->dead_lock);
-		data->dead = 1;
+		if(!data->dead)
+		{
+			print_status(philo, "died");
+			data->dead = 1;
+			pthread_mutex_unlock(&data->dead_lock);
+			return (1);
+		}
 		pthread_mutex_unlock(&data->dead_lock);
-		printf("exiting checkphilodeatth\n");
-		return (1);
 	}
-	
+	//printf("exiting checkphilodeatth\n");
 	return(0);
 }
 

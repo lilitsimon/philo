@@ -33,7 +33,7 @@ int	init_mutexes(t_data *data)
 			return (0);
 	if (pthread_mutex_init(&data->dead_lock, NULL) != 0)
 			return (0);
-	printf("mutextes initialised\n");
+	// printf("mutextes initialised\n");
 	return (1);
 }
 
@@ -45,7 +45,10 @@ int	init_philos(t_data *data)
 
 	data->philos = malloc(sizeof(t_philo) * data->num_philos);
 	if (!data->philos)
+	{
+		printf("Malloc for philosophers failed");
 		return (0);
+	}
 	while (i < data->num_philos)
 	{
 		data->philos[i].id = i + 1;
@@ -56,7 +59,7 @@ int	init_philos(t_data *data)
 		data->philos[i].data = data;
         i++;
 	}
-	printf("philos initialised\n");
+	// printf("philos initialised\n");
     return (1);
 }
 

@@ -2,37 +2,44 @@
 
 void *philo_routine(void *arg)
 {
-    printf("enetering philo routine\n");
-    t_philo *philo;
-    // t_data  *data;
-
-    philo = (t_philo *)arg;
-    //data = philo->data;
+    t_philo *philo = (t_philo *)arg;
 
     if (philo->id % 2 == 0)
-        usleep(1000); // delaying the even number philosophers /1milisecond, as this function takes 
-    while (1)
+        usleep(1000);
+
+    while (!dead_loop(philo))
     {
-        if(philo_eat(philo)) // Checks if the philosopher can have forks to eat.
+        if (philo_eat(philo))
             break;
-        if(philo_sleep(philo)) // Puts the philo to sleep
+        if (philo_sleep(philo))
             break;
-        if(philo_think(philo)) 
+        if (philo_think(philo))
             break;
     }
     return (NULL);
 }
 
-
-void *monitor_routine (void *arg)
+int dead_loop(t_philo *philo)
 {
-    printf("entering moinitor routine\n");
+    t_data *data = philo->data;
+    pthread_mutex_lock(&data->dead_lock);
+    if (data->dead)
+    {
+        pthread_mutex_unlock(&data->dead_lock);
+        return (1);
+    }
+    pthread_mutex_unlock(&data->dead_lock);
+    return (0);
+}
+
+void *monitor_routine(void *arg)
+{
+    // printf("Entering monitor routine\n");
     t_data *data;
     int i;
     int finished;
 
     data = (t_data *)arg;
-    
     while (1)
     {
         i = 0;
@@ -40,94 +47,84 @@ void *monitor_routine (void *arg)
         while (i < data->num_philos)
         {
             if (check_philo_death(&data->philos[i]))
-                return (NULL);
-            if (data->must_eat_count != -1 && data->philos[i].meals_eaten >= data->must_eat_count) // check mutex here
+            {
+                //printf("Monitor detected death, exiting\n");
+                return NULL;
+            }
+            if (data->must_eat_count != -1 && data->philos[i].meals_eaten >= data->must_eat_count)
                 finished++;
             i++;
         }
-        if (finished ==data->num_philos)
+        if (finished == data->num_philos)
         {
             pthread_mutex_lock(&data->write_lock);
-            printf("All philosophers have eaten enough\n");
+            // printf("All philosophers have eaten enough\n");
             pthread_mutex_unlock(&data->write_lock);
             pthread_mutex_lock(&data->dead_lock);
             data->dead = 1;
             pthread_mutex_unlock(&data->dead_lock);
-            return (NULL);
+            //printf("Monitor exiting due to meal completion\n");
+            return NULL;
         }
+        usleep(1000);  // just to reduce CPU usage
     }
 }
 
 int start_simulation(t_data *data)
 {
-    printf("starting simulation\n");
+    // printf("Starting simulation\n");
     int i;
     pthread_t monitor;
 
-    i = 0;
-    data->start_time = get_time(); // can be removed
+    data->start_time = get_time();
 
+    if (data->num_philos == 1)
+    {
+        one_philo(data);
+        return (0);
+    }
+    i = 0;
     while (i < data->num_philos)
     {
         if (pthread_create(&data->philos[i].thread, NULL, philo_routine, &data->philos[i]) != 0)
+        {
+            //printf("Error creating philosopher thread %d\n", i + 1);
             return (1);
+        }
         i++;
     }
-        if (pthread_create(&monitor, NULL, monitor_routine, data) != 0)
-            return(1);
+    if (pthread_create(&monitor, NULL, monitor_routine, data) != 0)
+    {
+        printf("Error creating monitor thread\n");
+        return (1);
+    }
+    // Wait for monitor thread to finish
+    // printf("Waiting for monitor thread to finish\n");
+    if (pthread_join(monitor, NULL) != 0)
+    {
+        printf("Error joining monitor thread\n");
+        return (1);
+    }
+    // printf("Monitor thread finished\n");
+    pthread_mutex_lock(&data->dead_lock);
+    data->dead = 1;
+    pthread_mutex_unlock(&data->dead_lock);
+    // printf("Waiting for philosopher threads to finish\n");
     i = 0;
     while (i < data->num_philos)
     {
         if (pthread_join(data->philos[i].thread, NULL) != 0)
+        {
+            // printf("Error joining philosopher thread %d\n", i + 1);
             return (1);
+        }
+        // printf("Philosopher thread %d joined\n", i + 1);
         i++;
     }
-    if (pthread_join(monitor, NULL) != 0)
-        return (1);
+    // printf("All threads joined, simulation complete\n");
     return (0);
 }
 
-int philo_eat (t_philo *philo)
-{
-    printf("entering philo eat\n");
-    t_data *data;
-
-    data = philo->data;
-    pthread_mutex_lock(&data->forks[philo->left_fork]);
-    print_status(philo, "has taken a fork");
-    pthread_mutex_lock(&data->forks[philo->right_fork]);
-    print_status(philo, "has taken a fork");
-    pthread_mutex_lock(&data->dead_lock);
-    if (data->dead) //checking if the simulation has ended/someone died
-    {
-        pthread_mutex_lock(&data->dead_lock);
-        pthread_mutex_unlock(&data->forks[philo->left_fork]);
-        pthread_mutex_unlock(&data->forks[philo->right_fork]);
-    }
-    pthread_mutex_unlock(&data->dead_lock);
-    print_status(philo, "is eating");
-    philo->last_meal_time = get_time();
-    if (smart_sleep(data->time_to_eat, data))
-        return (1);
-    philo->meals_eaten++;
-    pthread_mutex_unlock(&data->forks[philo->left_fork]);
-    pthread_mutex_unlock(&data->forks[philo->right_fork]);
-    return (0);
-}
-
-int philo_sleep(t_philo *philo)
-{
-    printf("enetering philo sleep\n");
-    print_status(philo, "is sleeping");
-    return (smart_sleep(philo->data->time_to_sleep, philo->data));
-}
-
-int philo_think(t_philo *philo)
-{
-    printf("entering philo think\n");
-    print_status(philo, "is thinking");
-    return(0);
-}
 
 
 
