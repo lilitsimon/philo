@@ -61,10 +61,7 @@ int	main(int argc, char **argv)
 {
     t_data data;
 	if (!check_args(argc, argv))
-	{
-		printf("Input validation failed\n");
 		return (1);
-	}
 	// printf("initialing data\n");
     if(!init_data(&data, argc, argv))
     { 
