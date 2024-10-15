@@ -2,7 +2,7 @@ NAME = philo
 CC = cc
 CFLAGS = -Wall -Wextra -Werror -pthread
 
-SOURCES = main.c utils.c init.c routine.c
+SOURCES = main.c utils.c init.c routine.c threads.c
 
 OBJECTS = $(SOURCES:.c=.o)
 
