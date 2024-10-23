@@ -66,27 +66,37 @@ int	is_number(char *str)
 	return (1);
 }
 
-void	print_status(char *str, t_philo *philo, int id)
+void    print_status(char *str, t_philo *philo, int id)
 {
-	long long	time;
+    long long    time;
 
-	pthread_mutex_lock(philo->dead_lock);
-	if (*philo->dead)
-	{
-		pthread_mutex_unlock(philo->dead_lock);
-		return ;
-	}
-	pthread_mutex_unlock(philo->dead_lock);
-	pthread_mutex_lock(philo->write_lock);
-	time = get_time() - philo->start_time;
-	printf("%lld %d %s\n", time, id, str);
-	pthread_mutex_unlock(philo->write_lock);
+    pthread_mutex_lock(philo->dead_lock);
+    if (*philo->dead && str[0] != 'd')  // Check first letter instead of strcmp
+    {
+        pthread_mutex_unlock(philo->dead_lock);
+        return;
+    }
+    pthread_mutex_unlock(philo->dead_lock);
+
+    pthread_mutex_lock(philo->write_lock);
+    time = get_time() - philo->start_time;
+    printf("%lld %d %s\n", time, id, str);
+    pthread_mutex_unlock(philo->write_lock);
 }
+
+
+
 
 int	philo_dead(t_philo *philo, long long time_to_die)
 {
 	pthread_mutex_lock(philo->meal_lock);
-	if (!philo->eating && (get_time() - philo->last_meal >= time_to_die))
+	long long time_since_last_meal = get_time() - philo->last_meal;
+
+	// Debugging to track last meal time vs time_to_die
+	//printf("[DEBUG] Philosopher %d last meal time: %lld ms ago (time_to_die: %lld)\n",
+		//philo->id, time_since_last_meal, time_to_die);
+
+	if (time_since_last_meal >= time_to_die)
 	{
 		pthread_mutex_unlock(philo->meal_lock);
 		return (1);
@@ -94,26 +104,32 @@ int	philo_dead(t_philo *philo, long long time_to_die)
 	pthread_mutex_unlock(philo->meal_lock);
 	return (0);
 }
-
-int	check_philo_death(t_philo *philos)
+int check_philo_death(t_philo *philos, long long current_time)
 {
-	int	i;
+    int i;
+    long long time_since_last_meal;
 
-	i = 0;
-	while (i < philos[0].num_philos)
-	{
-		if (philo_dead(&philos[i], philos[i].time_to_die))
-		{
-			print_status("died", &philos[i], philos[i].id);
-			pthread_mutex_lock(philos[0].dead_lock);
-			*philos->dead = 1;
-			pthread_mutex_unlock(philos[0].dead_lock);
-			return (1);
-		}
-		i++;
-	}
-	return (0);
+    i = 0;
+    while (i < philos[0].num_philos)
+    {
+        pthread_mutex_lock(philos[i].meal_lock);
+        time_since_last_meal = current_time - philos[i].last_meal;
+        if (!philos[i].eating && time_since_last_meal >= philos[i].time_to_die)
+        {
+            print_status("died", &philos[i], philos[i].id);
+            pthread_mutex_lock(philos[i].dead_lock);
+            *philos[i].dead = 1;
+            pthread_mutex_unlock(philos[i].dead_lock);
+            pthread_mutex_unlock(philos[i].meal_lock);
+            return (1);
+        }
+        pthread_mutex_unlock(philos[i].meal_lock);
+        i++;
+    }
+    return (0);
 }
+
+
 
 int	check_if_all_ate(t_philo *philos)
 {

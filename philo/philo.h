@@ -53,11 +53,9 @@ typedef struct s_data
 int					check_args(int argc, char **argv);
 long				ft_atol(char *str);
 int					is_number(char *str);
-int					init_data(t_data *data, t_philo *philos,
-						pthread_mutex_t *forks, char **argv);
+int					init_data(t_data *data, t_philo *philos, pthread_mutex_t *forks, char **argv);
 int					init_forks(pthread_mutex_t *forks, int philo_num);
-int					init_philos(t_philo *philos, t_data *data,
-						pthread_mutex_t *forks, char **argv);
+int					init_philos(t_philo *philos, t_data *data, pthread_mutex_t *forks, char **argv);
 long long			get_time(void);
 void				ft_usleep(long long milliseconds);
 int					start_simulation(t_data *data);
@@ -66,7 +64,7 @@ void				*philo_routine(void *arg);
 void				print_status(char *str, t_philo *philo, int id);
 int					philo_dead(t_philo *philo, long long time_to_die);
 void				*monitor_routine(void *ptr);
-int					check_philo_death(t_philo *philos);
+int check_philo_death(t_philo *philos, long long current_time);
 int					check_if_all_ate(t_philo *philos);
 void				cleanup(t_data *data, pthread_mutex_t *forks);
 void				philo_eat(t_philo *philo);

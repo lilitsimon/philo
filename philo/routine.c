@@ -23,7 +23,7 @@ void	*philo_routine(void *ptr)
 	{
 		philo_eat(philo);
 		philo_sleep(philo);
-		philo_think(philo);
+		philo_think(philo);  
 	}
 	return (ptr);
 }
@@ -40,52 +40,57 @@ int	philo_die_loop(t_philo *philo)
 	return (0);
 }
 
-void	*monitor_routine(void *ptr)
+void *monitor_routine(void *ptr)
 {
-	t_philo	*philos;
+    t_philo *philos = (t_philo *)ptr;
+    long long current_time;
 
-	philos = (t_philo *)ptr;
-	while (!philo_die_loop(philos))
-	{
-		if (check_philo_death(philos) == 1 || check_if_all_ate(philos) == 1)
-			break ;
-		usleep(500);
-	}
-	return (NULL);
+    while (1)
+    {
+        current_time = get_time(); 
+        if (check_philo_death(philos, current_time))
+        {
+            break;
+        }
+        usleep(1000);
+    }
+    return (NULL);
 }
 
-int	start_simulation(t_data *data)
-{
-	pthread_t	observer;
-	int			i;
-	long long	start_time;
 
-	i = 0;
-	if (data->philos[0].num_philos == 1)
-	{
-		one_philo(data);
-		return (0);
-	}
-	start_time = get_time();
-	if (pthread_create(&observer, NULL, monitor_routine, data->philos) != 0)
-		return (1);
-	while (i < data->philos[0].num_philos)
-	{
-		data->philos[i].start_time = start_time;
-		if (pthread_create(&data->philos[i].thread, NULL, philo_routine,
-				&data->philos[i]) != 0)
-			return (1);
-		i++;
-	}
-	pthread_join(observer, NULL);
-	i = 0;
-	while (i < data->philos[0].num_philos)
-	{
-		pthread_join(data->philos[i].thread, NULL);
-		i++;
-	}
-	return (0);
+
+
+int start_simulation(t_data *data)
+{
+    pthread_t observer;
+    int i;
+    if (data->philos[0].num_philos == 1)
+    {
+        one_philo(data);
+        return (0);
+    }
+
+    if (pthread_create(&observer, NULL, monitor_routine, data->philos) != 0)
+        return (1);
+
+    i = 0;
+    while (i < data->philos[0].num_philos)
+    {
+        if (pthread_create(&data->philos[i].thread, NULL, philo_routine, &data->philos[i]) != 0)
+            return (1);
+        i++;
+    }
+
+    pthread_join(observer, NULL);
+    i = 0;
+    while (i < data->philos[0].num_philos)
+    {
+        pthread_join(data->philos[i].thread, NULL);
+        i++;
+    }
+    return (0);
 }
+
 
 void	one_philo(t_data *data)
 {
