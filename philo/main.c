@@ -34,49 +34,50 @@ int	check_args(int argc, char **argv)
 	return (1);
 }
 
-void cleanup(t_data *data)
+void	cleanup(t_data *data, pthread_mutex_t *forks)
 {
-	int i;
+	int	i;
 
 	i = 0;
-
-	if (data->forks)
+	while (i < data->philos[0].num_philos)
 	{
-		while (i < data->num_philos)
-		{
-			pthread_mutex_destroy(&data->forks[i]);
-			i++;
-		}
-		free(data->forks);
+		pthread_mutex_destroy(&forks[i]);
+		i++;
 	}
 	pthread_mutex_destroy(&data->write_lock);
 	pthread_mutex_destroy(&data->dead_lock);
-
-	if (data->philos)
-		free(data->philos);
+	pthread_mutex_destroy(&data->meal_lock);
+	free(data->philos);
 }
-
 
 int	main(int argc, char **argv)
 {
-    t_data data;
+	t_data			data;
+	pthread_mutex_t	*forks;
+	t_philo			*philos;
+	int				num_philos;
+
 	if (!check_args(argc, argv))
 		return (1);
-	// printf("initialing data\n");
-    if(!init_data(&data, argc, argv))
-    { 
-        printf("Error: Initialization failed\n");
-        cleanup(&data);
-        return (1);
-    }
-	// printf("starting simulation\n");
-    if (start_simulation(&data)!= 0)
+	num_philos = ft_atol(argv[1]);
+	forks = malloc(sizeof(pthread_mutex_t) * num_philos);
+	philos = malloc(sizeof(t_philo) * num_philos);
+	if (!forks || !philos)
+		return (printf("Error: Memory allocation failed\n"), 1);
+	data.philos = philos;
+	if (!init_data(&data, philos, forks, argv))
 	{
-		printf("Error: Simulation failed)");
-		cleanup(&data);
+		cleanup(&data, forks);
+		free(forks);
 		return (1);
 	}
-	// printf("simulation finished ok");
-   	cleanup(&data);
-    return (0);
+	if (start_simulation(&data) != 0)
+	{
+		cleanup(&data, forks);
+		free(forks);
+		return (1);
+	}
+	cleanup(&data, forks);
+	free(forks);
+	return (0);
 }

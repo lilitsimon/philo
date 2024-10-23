@@ -12,72 +12,68 @@
 
 #include "philo.h"
 
-int	init_data(t_data *data, int argc, char **argv)
+int	init_data(t_data *data, t_philo *philos, pthread_mutex_t *forks,
+		char **argv)
 {
-	data->num_philos = ft_atol(argv[1]);
-	data->time_to_die = ft_atol(argv[2]);
-	data->time_to_eat = ft_atol(argv[3]);
-	data->time_to_sleep = ft_atol(argv[4]);
-	if (argc == 6)
-		data->must_eat_count = ft_atol(argv[5]);
-	else
-		data->must_eat_count = -1;
-	data->dead = 0;
-	data->start_time = get_time();
-	return (init_mutexes(data) && init_philos(data));
+	int	num_philos;
+
+	num_philos = ft_atol(argv[1]);
+	pthread_mutex_init(&data->dead_lock, NULL);
+	pthread_mutex_init(&data->write_lock, NULL);
+	pthread_mutex_init(&data->meal_lock, NULL);
+	data->dead_flag = 0;
+	return (init_forks(forks, num_philos) && init_philos(philos, data, forks,
+			argv));
 }
 
-int	init_mutexes(t_data *data)
+int	init_forks(pthread_mutex_t *forks, int philo_num)
 {
 	int	i;
 
 	i = 0;
-	data->forks = malloc(sizeof(pthread_mutex_t) * data->num_philos);
-	if (!data->forks)
-		return (0);
-	while (i < data->num_philos)
+	while (i < philo_num)
 	{
-		if (pthread_mutex_init(&data->forks[i], NULL) != 0)
-			return (0);
+		pthread_mutex_init(&forks[i], NULL);
 		i++;
-	}	
-	if (pthread_mutex_init(&data->write_lock, NULL) != 0)
-			return (0);
-	if (pthread_mutex_init(&data->dead_lock, NULL) != 0)
-			return (0);
-	// printf("mutextes initialised\n");
+	}
 	return (1);
 }
 
-int	init_philos(t_data *data)
+int	init_philos(t_philo *philos, t_data *data, pthread_mutex_t *forks,
+		char **argv)
 {
-	int i;
+	int	i;
+	int	num_philos;
+	int	must_eat_count;
 
+	num_philos = ft_atol(argv[1]);
 	i = 0;
-
-	data->philos = malloc(sizeof(t_philo) * data->num_philos);
-	if (!data->philos)
+	while (i < num_philos)
 	{
-		printf("Malloc for philosophers failed");
-		return (0);
+		philos[i].id = i + 1;
+		philos[i].num_philos = num_philos;
+		philos[i].time_to_die = ft_atol(argv[2]);
+		philos[i].time_to_eat = ft_atol(argv[3]);
+		philos[i].time_to_sleep = ft_atol(argv[4]);
+		if (argv[5])
+			must_eat_count = ft_atol(argv[5]);
+		else
+			must_eat_count = -1;
+		philos[i].must_eat_count = must_eat_count;
+		philos[i].last_meal = get_time();
+		philos[i].start_time = get_time();
+		philos[i].eating = 0;
+		philos[i].meals_eaten = 0;
+		philos[i].left_fork = &forks[i];
+		if (i == 0)
+			philos[i].right_fork = &forks[num_philos - 1];
+		else
+			philos[i].right_fork = &forks[i - 1];
+		philos[i].meal_lock = &data->meal_lock;
+		philos[i].write_lock = &data->write_lock;
+		philos[i].dead_lock = &data->dead_lock;
+		philos[i].dead = &data->dead_flag;
+		i++;
 	}
-	while (i < data->num_philos)
-	{
-		data->philos[i].id = i + 1;
-		data->philos[i].left_fork = i;
-		data->philos[i].right_fork = (i + 1) % data->num_philos;
-		data->philos[i].meals_eaten = 0;
-		data->philos[i].last_meal_time = data->start_time;
-		data->philos[i].data = data;
-        i++;
-	}
-	// printf("philos initialised\n");
-    return (1);
-}
-
-long long get_time(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
+	return (1);
 }

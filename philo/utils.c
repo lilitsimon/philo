@@ -14,8 +14,8 @@
 
 long	ft_atol(char *str)
 {
-	long result;
-	int sign;
+	long	result;
+	int		sign;
 
 	result = 0;
 	sign = 1;
@@ -35,73 +35,109 @@ long	ft_atol(char *str)
 	return (result * sign);
 }
 
-int is_number(char *str)
+long long	get_time(void)
 {
-    int i;
-    i = 0;
+	struct timeval	tv;
 
-    while (str[i])
-    {
-        if (str[i] < '0' || str[i] > '9')
-            return (0);
-        i++;
-    }    
-    return (1);
+	gettimeofday(&tv, NULL);
+	return ((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
-void print_status (t_philo *philo, char *status)
+void	ft_usleep(long long milliseconds)
 {
-	t_data *data;
-	long long current_time;
+	long long	start_time;
 
-	data = philo->data;
-	current_time = get_time() - data->start_time;
-	pthread_mutex_lock(&data->write_lock);
-	if (!data->dead)
-		printf("%lld %d %s\n", current_time, philo->id, status);
-	pthread_mutex_unlock(&data->write_lock);
+	start_time = get_time();
+	while ((get_time() - start_time) < milliseconds)
+		usleep(100);
 }
 
-int smart_sleep(long long milliseconds, t_data *data)
+int	is_number(char *str)
 {
-	long long start;
-	long long current;
+	int	i;
 
-	start = get_time();
-	while (1)
+	i = 0;
+	while (str[i])
 	{
-		pthread_mutex_lock(&data->dead_lock);
-			if (data->dead)
-			{
-				pthread_mutex_unlock(&data->dead_lock);
-				return (1);
-			}
-		pthread_mutex_unlock(&data->dead_lock);
-		current = get_time();
-		if ((current - start) >= milliseconds)
+		if (str[i] < '0' || str[i] > '9')
 			return (0);
-		usleep (50); // Sleep for small intervals and check for the deaths regularly to end early, CPU usagy (more sleep, less usage, less responsive)
+		i++;
 	}
+	return (1);
 }
-int check_philo_death(t_philo *philo)
+
+void	print_status(char *str, t_philo *philo, int id)
 {
-	t_data *data;
-	long long current_time;
-	data = philo->data;
-	current_time = get_time();
-	if ((current_time - philo->last_meal_time) > data->time_to_die)
+	long long	time;
+
+	pthread_mutex_lock(philo->dead_lock);
+	if (*philo->dead)
 	{
-		pthread_mutex_lock(&data->dead_lock);
-		if(!data->dead)
+		pthread_mutex_unlock(philo->dead_lock);
+		return ;
+	}
+	pthread_mutex_unlock(philo->dead_lock);
+	pthread_mutex_lock(philo->write_lock);
+	time = get_time() - philo->start_time;
+	printf("%lld %d %s\n", time, id, str);
+	pthread_mutex_unlock(philo->write_lock);
+}
+
+int	philo_dead(t_philo *philo, long long time_to_die)
+{
+	pthread_mutex_lock(philo->meal_lock);
+	if (!philo->eating && (get_time() - philo->last_meal >= time_to_die))
+	{
+		pthread_mutex_unlock(philo->meal_lock);
+		return (1);
+	}
+	pthread_mutex_unlock(philo->meal_lock);
+	return (0);
+}
+
+int	check_philo_death(t_philo *philos)
+{
+	int	i;
+
+	i = 0;
+	while (i < philos[0].num_philos)
+	{
+		if (philo_dead(&philos[i], philos[i].time_to_die))
 		{
-			print_status(philo, "died");
-			data->dead = 1;
-			pthread_mutex_unlock(&data->dead_lock);
+			print_status("died", &philos[i], philos[i].id);
+			pthread_mutex_lock(philos[0].dead_lock);
+			*philos->dead = 1;
+			pthread_mutex_unlock(philos[0].dead_lock);
 			return (1);
 		}
-		pthread_mutex_unlock(&data->dead_lock);
+		i++;
 	}
-	//printf("exiting checkphilodeatth\n");
-	return(0);
+	return (0);
 }
 
+int	check_if_all_ate(t_philo *philos)
+{
+	int	i;
+	int	finished_eating;
+
+	if (philos[0].must_eat_count == -1)
+		return (0);
+	i = 0;
+	finished_eating = 0;
+	while (i < philos[0].num_philos)
+	{
+		pthread_mutex_lock(philos[i].meal_lock);
+		if (philos[i].meals_eaten >= philos[i].must_eat_count)
+			finished_eating++;
+		pthread_mutex_unlock(philos[i].meal_lock);
+		i++;
+	}
+	if (finished_eating == philos[0].num_philos)
+	{
+		pthread_mutex_lock(philos[0].dead_lock);
+		*philos[0].dead = 1;
+		pthread_mutex_unlock(philos[0].dead_lock);
+		return (1);
+	}
+	return (0);
+}

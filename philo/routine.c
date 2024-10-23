@@ -12,135 +12,90 @@
 
 #include "philo.h"
 
-void *philo_routine(void *arg)
+void	*philo_routine(void *ptr)
 {
-    t_philo *philo = (t_philo *)arg;
+	t_philo	*philo;
 
-    if (philo->id % 2 == 0)
-        usleep(1000);
-
-    while (!dead_loop(philo))
-    {
-        if (philo_eat(philo))
-            break;
-        if (philo_sleep(philo))
-            break;
-        if (philo_think(philo))
-            break;
-    }
-    return (NULL);
+	philo = (t_philo *)ptr;
+	if (philo->id % 2 == 0)
+		ft_usleep(1);
+	while (!philo_die_loop(philo))
+	{
+		philo_eat(philo);
+		philo_sleep(philo);
+		philo_think(philo);
+	}
+	return (ptr);
 }
 
-int dead_loop(t_philo *philo)
+int	philo_die_loop(t_philo *philo)
 {
-    t_data *data = philo->data;
-    pthread_mutex_lock(&data->dead_lock);
-    if (data->dead)
-    {
-        pthread_mutex_unlock(&data->dead_lock);
-        return (1);
-    }
-    pthread_mutex_unlock(&data->dead_lock);
-    return (0);
+	pthread_mutex_lock(philo->dead_lock);
+	if (*philo->dead == 1)
+	{
+		pthread_mutex_unlock(philo->dead_lock);
+		return (1);
+	}
+	pthread_mutex_unlock(philo->dead_lock);
+	return (0);
 }
 
-void *monitor_routine(void *arg)
+void	*monitor_routine(void *ptr)
 {
-    // printf("Entering monitor routine\n");
-    t_data *data;
-    int i;
-    int finished;
+	t_philo	*philos;
 
-    data = (t_data *)arg;
-    while (1)
-    {
-        i = 0;
-        finished = 0;
-        while (i < data->num_philos)
-        {
-            if (check_philo_death(&data->philos[i]))
-            {
-                //printf("Monitor detected death, exiting\n");
-                return NULL;
-            }
-            if (data->must_eat_count != -1 && data->philos[i].meals_eaten >= data->must_eat_count)
-                finished++;
-            i++;
-        }
-        if (finished == data->num_philos)
-        {
-            pthread_mutex_lock(&data->write_lock);
-            // printf("All philosophers have eaten enough\n");
-            pthread_mutex_unlock(&data->write_lock);
-            pthread_mutex_lock(&data->dead_lock);
-            data->dead = 1;
-            pthread_mutex_unlock(&data->dead_lock);
-            //printf("Monitor exiting due to meal completion\n");
-            return NULL;
-        }
-        usleep(1000);  // just to reduce CPU usage
-    }
+	philos = (t_philo *)ptr;
+	while (!philo_die_loop(philos))
+	{
+		if (check_philo_death(philos) == 1 || check_if_all_ate(philos) == 1)
+			break ;
+		usleep(500);
+	}
+	return (NULL);
 }
 
-int start_simulation(t_data *data)
+int	start_simulation(t_data *data)
 {
-    // printf("Starting simulation\n");
-    int i;
-    pthread_t monitor;
+	pthread_t	observer;
+	int			i;
+	long long	start_time;
 
-    data->start_time = get_time();
-
-    if (data->num_philos == 1)
-    {
-        one_philo(data);
-        return (0);
-    }
-    i = 0;
-    while (i < data->num_philos)
-    {
-        if (pthread_create(&data->philos[i].thread, NULL, philo_routine, &data->philos[i]) != 0)
-        {
-            //printf("Error creating philosopher thread %d\n", i + 1);
-            return (1);
-        }
-        i++;
-    }
-    if (pthread_create(&monitor, NULL, monitor_routine, data) != 0)
-    {
-        printf("Error creating monitor thread\n");
-        return (1);
-    }
-    // Wait for monitor thread to finish
-    // printf("Waiting for monitor thread to finish\n");
-    if (pthread_join(monitor, NULL) != 0)
-    {
-        printf("Error joining monitor thread\n");
-        return (1);
-    }
-    // printf("Monitor thread finished\n");
-    pthread_mutex_lock(&data->dead_lock);
-    data->dead = 1;
-    pthread_mutex_unlock(&data->dead_lock);
-    // printf("Waiting for philosopher threads to finish\n");
-    i = 0;
-    while (i < data->num_philos)
-    {
-        if (pthread_join(data->philos[i].thread, NULL) != 0)
-        {
-            // printf("Error joining philosopher thread %d\n", i + 1);
-            return (1);
-        }
-        // printf("Philosopher thread %d joined\n", i + 1);
-        i++;
-    }
-    // printf("All threads joined, simulation complete\n");
-    return (0);
+	i = 0;
+	if (data->philos[0].num_philos == 1)
+	{
+		one_philo(data);
+		return (0);
+	}
+	start_time = get_time();
+	if (pthread_create(&observer, NULL, monitor_routine, data->philos) != 0)
+		return (1);
+	while (i < data->philos[0].num_philos)
+	{
+		data->philos[i].start_time = start_time;
+		if (pthread_create(&data->philos[i].thread, NULL, philo_routine,
+				&data->philos[i]) != 0)
+			return (1);
+		i++;
+	}
+	pthread_join(observer, NULL);
+	i = 0;
+	while (i < data->philos[0].num_philos)
+	{
+		pthread_join(data->philos[i].thread, NULL);
+		i++;
+	}
+	return (0);
 }
 
+void	one_philo(t_data *data)
+{
+	t_philo	*philo;
 
-
-
-
-
-
-
+	philo = &data->philos[0];
+	print_status("has taken a fork", philo, philo->id);
+	ft_usleep(philo->time_to_die);
+	print_status("died", philo, philo->id);
+	pthread_mutex_lock(philo->dead_lock);
+	*philo->dead = 1;
+	pthread_mutex_unlock(philo->dead_lock);
+}
