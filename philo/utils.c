@@ -45,13 +45,13 @@ long long	get_time(void)
 
 void	ft_usleep(long long milliseconds)
 {
-	long long	start_time;
+    long long	start_time;
 
-	start_time = get_time();
-	while ((get_time() - start_time) < milliseconds)
-		usleep(100);
+    start_time = get_time();
+    while ((get_time() - start_time) < milliseconds)
+        usleep(200);
+
 }
-
 int	is_number(char *str)
 {
 	int	i;
@@ -66,22 +66,25 @@ int	is_number(char *str)
 	return (1);
 }
 
-void    print_status(char *str, t_philo *philo, int id)
+void	print_status(char *str, t_philo *philo, int id)
 {
-    long long    time;
+	long long	time;
 
-    pthread_mutex_lock(philo->dead_lock);
-    if (*philo->dead && str[0] != 'd')  // Check first letter instead of strcmp
-    {
-        pthread_mutex_unlock(philo->dead_lock);
-        return;
-    }
-    pthread_mutex_unlock(philo->dead_lock);
+	pthread_mutex_lock(philo->dead_lock);
+	if (*philo->dead)
+	{
+		pthread_mutex_unlock(philo->dead_lock);
+		return ;
+	}
+	pthread_mutex_unlock(philo->dead_lock);
 
-    pthread_mutex_lock(philo->write_lock);
-    time = get_time() - philo->start_time;
-    printf("%lld %d %s\n", time, id, str);
-    pthread_mutex_unlock(philo->write_lock);
+	pthread_mutex_lock(philo->write_lock);
+	time = get_time() - philo->start_time;
+
+	// Debug print statement to show when a status message is printed
+	//printf("[DEBUG] %lld ms: Philosopher %d %s\n", time, id, str);
+	printf("%lld %d %s\n", time, id, str);
+	pthread_mutex_unlock(philo->write_lock);
 }
 
 

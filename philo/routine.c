@@ -52,13 +52,10 @@ void *monitor_routine(void *ptr)
         {
             break;
         }
-        usleep(1000);
+        usleep(500);
     }
     return (NULL);
 }
-
-
-
 
 int start_simulation(t_data *data)
 {
@@ -72,7 +69,6 @@ int start_simulation(t_data *data)
 
     if (pthread_create(&observer, NULL, monitor_routine, data->philos) != 0)
         return (1);
-
     i = 0;
     while (i < data->philos[0].num_philos)
     {
@@ -80,7 +76,6 @@ int start_simulation(t_data *data)
             return (1);
         i++;
     }
-
     pthread_join(observer, NULL);
     i = 0;
     while (i < data->philos[0].num_philos)
